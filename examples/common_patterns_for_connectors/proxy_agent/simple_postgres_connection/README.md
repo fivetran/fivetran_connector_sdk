@@ -1,9 +1,9 @@
 # Proxy Agent - Simple Postgres Connection Connector Example
 
 ## Connector overview
-This example demonstrates how to connect to a PostgreSQL instance from a Fivetran Connector SDK connector when running behind the [Fivetran Proxy Agent](https://fivetran.com/docs/core-concepts/architecture/hybrid-deployment). The connector reads PostgreSQL connection parameters from `configuration.json` where `host` is a single entry in the format `hostname:port`. It performs a full sync of the `test` table using a server-side streaming cursor.
+This example demonstrates how to connect to a PostgreSQL instance from a Fivetran Connector SDK connector with [Fivetran Proxy Agent](https://fivetran.com/docs/core-concepts/architecture/hybrid-deployment). The connector reads PostgreSQL connection parameters from `configuration.json` where `host` is a single entry in the format `hostname:port`. It performs a full sync of the `TEST` table using a server-side streaming cursor.
 
-The Fivetran Proxy Agent runs inside your network and forwards traffic between Fivetran-hosted connectors and your private data sources. Because the proxy agent operates transparently at the network layer, your connector code does not need to know about it. You only need to make sure the `host` you configure is reachable through the proxy agent from the Fivetran environment.
+The Fivetran Proxy Agent runs inside your network and forwards traffic between Fivetran-hosted connectors and your private data sources. Because the proxy agent operates transparently at the network layer, your connector code does not need to know about it. You only need to make sure the `host` you configure is reachable from the proxy agent.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
@@ -38,7 +38,7 @@ fivetran deploy \
   --proxy-id <YOUR_FIVETRAN_PROXY_AGENT_ID>
 ```
 
-- `--api-key`: Your base64-encoded Fivetran API key (`echo -n "API_KEY:API_SECRET" | base64`). You can also set the `FIVETRAN_API_KEY` environment variable and omit this flag.
+- `--api-key`: Your base64-encoded Fivetran API key and secret pair (`echo -n "API_KEY:API_SECRET" | base64`). You can also set the `FIVETRAN_API_KEY` environment variable and omit this flag.
 - `--destination`: The name of the destination in your Fivetran account where this connector will load data.
 - `--connection`: The name to assign to the connection in Fivetran. Use a new name for a fresh deployment, or an existing name to update it in place.
 - `--configuration`: Path to the `configuration.json` file with the connector's configuration values.
@@ -87,8 +87,8 @@ This connector uses standard PostgreSQL username/password authentication. Creden
 ## Data handling
 The connector processes data as follows:
 1. Opens a PostgreSQL connection using the configured `host`, credentials, and `sslmode=disable`.
-2. Opens a named server-side cursor to stream rows from the `test` table in batches of 1000, avoiding loading the full result set into memory.
-3. Upserts each row to the `test` destination table.
+2. Opens a named server-side cursor to stream rows from the `TEST` table in batches of 1000, avoiding loading the full result set into memory.
+3. Upserts each row to the `TEST` destination table.
 4. Checkpoints state (with `total_rows` count) after every batch of 1000 rows.
 
 ## Error handling
@@ -100,11 +100,13 @@ The connector includes error handling for:
 ## Tables created
 | Table | Primary key | Description |
 | --- | --- | --- |
-| `test` | `id` | All rows streamed from the source `test` table via a server-side cursor. |
+| `TEST` | `id` | All rows streamed from the source `TEST` table via a server-side cursor. |
 
 ## Additional considerations
-- This example assumes the source table is named `test` and has an `id` column. Adjust `__TABLE_NAME` in `connector.py` and the schema definition for your source.
-- When using the Fivetran Proxy Agent, make sure the machine running the agent has network access to the PostgreSQL host and that outbound HTTPS from the proxy agent to Fivetran is allowed.
+- This example assumes the source table is named `TEST` and has an `id` column. Adjust `__TABLE_NAME` in `connector.py` and the schema definition for your source.
+- When using the Fivetran Proxy Agent, make sure the machine running the agent has network access to the PostgreSQL host.
 - For production deployments, prefer TLS-enabled PostgreSQL connections by passing `sslmode="require"` (or stricter) to `psycopg2.connect()`.
+- If you want to use a custom key name in `configuration.json` for source host detail which is to be supported via proxy, you need to pass an extra argument during deployment. Refer to the `custom_proxy_host_key` example for more details.
+- `fivetran debug` runs locally and does not route through the Proxy Agent, so it cannot validate end-to-end Proxy Agent connectivity. To test connectivity, either deploy the connection with `--proxy-id` and run a sync, or run `fivetran debug` from within your private network where the data source is directly reachable.
 
 The examples provided are meant to help you get started with Fivetran's Connector SDK. While the connector has been tested, Fivetran is not responsible for any issues resulting from its use. For support, contact the Fivetran Support team.

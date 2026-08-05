@@ -27,7 +27,8 @@ import psycopg2.extras
 
 __CHECKPOINT_INTERVAL = 1000  # Number of records to process before checkpointing state
 __DEFAULT_POSTGRES_PORT = 5432  # Default PostgreSQL port
-__TABLE_NAME = "test"  # Name of the source table to sync
+__MAX_PORT_NUMBER = 65535  # Highest valid TCP port number
+__TABLE_NAME = "TEST"  # Name of the source table to sync
 
 
 def validate_configuration(configuration: dict):
@@ -45,6 +46,10 @@ def validate_configuration(configuration: dict):
         if key not in configuration:
             raise ValueError(f"Missing required configuration value: {key}")
 
+    hostname, _ = split_host_port(configuration["host"])
+    if not hostname:
+        raise ValueError("Configuration value 'host' must be in the format 'hostname:port'.")
+
 
 def split_host_port(host_entry: str):
     """
@@ -60,8 +65,33 @@ def split_host_port(host_entry: str):
         return "", __DEFAULT_POSTGRES_PORT
     if ":" in host_entry:
         hostname, port_str = host_entry.rsplit(":", 1)
-        return hostname.strip(), int(port_str)
+        return hostname.strip(), parse_port(port_str, host_entry)
     return host_entry, __DEFAULT_POSTGRES_PORT
+
+
+def parse_port(port_str: str, host_entry: str):
+    """
+    Parse and validate a TCP port from a host entry.
+    Args:
+        port_str: The port portion extracted from the host entry.
+        host_entry: The original host entry for error reporting.
+    Returns:
+        The validated port as an integer.
+    Raises:
+        ValueError: if the port is missing, non-numeric, or outside the valid TCP range.
+    """
+    port_str = (port_str or "").strip()
+    if not port_str:
+        raise ValueError(f"Host entry '{host_entry}' must include digits after ':'.")
+    if not port_str.isdigit():
+        raise ValueError(f"Host entry '{host_entry}' contains an invalid port: '{port_str}'.")
+
+    port = int(port_str)
+    if not 1 <= port <= __MAX_PORT_NUMBER:
+        raise ValueError(
+            f"Host entry '{host_entry}' contains port {port}, but valid ports are 1-{__MAX_PORT_NUMBER}."
+        )
+    return port
 
 
 def get_database_connection(configuration: dict):

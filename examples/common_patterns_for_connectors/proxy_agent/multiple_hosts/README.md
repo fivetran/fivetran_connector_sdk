@@ -1,12 +1,7 @@
 # Proxy Agent - Multiple Hosts Connector Example
 
 ## Connector overview
-This example demonstrates how to connect to a PostgreSQL instance behind a [Fivetran Proxy Agent](https://fivetran.com/docs/core-concepts/architecture/hybrid-deployment) when **multiple candidate hosts** are available. The connector reads a comma-separated string of hosts from the `hosts` key in `configuration.json` and connects to **each host in order**, extracting data from every reachable host.
-
-Typical use cases:
-- Multiple Fivetran Proxy Agents fronting different PostgreSQL shards, each holding a subset of data.
-- A primary host with one or more read replicas that you want to sync from in parallel.
-- Region-specific hosts where all hosts hold data that should be synced to the destination.
+This example demonstrates how to connect to a PostgreSQL instance with the [Fivetran Proxy Agent](https://fivetran.com/docs/core-concepts/architecture/hybrid-deployment) when multiple candidate hosts are available. The connector reads the `hosts` key from `configuration.json` and connects to each configured host in order, extracts data.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
@@ -15,7 +10,7 @@ Typical use cases:
   - macOS: 13 (Ventura) or later (Apple Silicon [arm64] or Intel [x86_64])
   - Linux: Distributions such as Ubuntu 20.04 or later, Debian 10 or later, or Amazon Linux 2 or later (arm64 or x86_64)
 - A PostgreSQL instance (or replicas) reachable from the Fivetran Proxy Agent(s)
-- One or more Fivetran Proxy Agents installed and registered in your Fivetran account
+- Fivetran Proxy Agents installed and registered in your Fivetran account
 
 ## Getting started
 Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connector-sdk/setup-guide) to get started.
@@ -40,11 +35,11 @@ fivetran deploy \
   --proxy-id <YOUR_FIVETRAN_PROXY_AGENT_ID>
 ```
 
-- `--api-key`: Your base64-encoded Fivetran API key (`echo -n "API_KEY:API_SECRET" | base64`). You can also set the `FIVETRAN_API_KEY` environment variable and omit this flag.
+- `--api-key`: Your base64-encoded Fivetran API key and secret pair (`echo -n "API_KEY:API_SECRET" | base64`). You can also set the `FIVETRAN_API_KEY` environment variable and omit this flag.
 - `--destination`: The name of the destination in your Fivetran account where this connector will load data.
 - `--connection`: The name to assign to the connection in Fivetran. Use a new name for a fresh deployment, or an existing name to update it in place.
 - `--configuration`: Path to the `configuration.json` file. The `hosts` value must be a JSON array of `hostname:port` strings.
-- `--proxy-id`: The identifier of the Fivetran Proxy Agent to associate with this connection. If you use multiple proxy agents to reach different hosts, pass the primary agent ID here and associate the additional agents with the connection from the Fivetran dashboard.
+- `--proxy-id`: The identifier of the Fivetran Proxy Agent to associate with this connection.
 
 Refer to the [Connector SDK `deploy` documentation](https://fivetran.com/docs/connector-sdk/setup-guide#deployyourconnectortofivetran) for the full list of options.
 
@@ -67,19 +62,13 @@ connection). It attempts every configured host and syncs from **each one that is
    - On failure, logs a warning and moves to the next host — that host is skipped for this sync.
 4. If every host fails, a `ConnectionError` is raised so Fivetran can retry the sync.
 
-Because every reachable host is synced, this pattern is intended for hosts that hold
-**different, non-overlapping data** (for example, shards) rather than read replicas of the
-same primary — syncing multiple replicas of the same data would re-upsert the same rows
-redundantly on every run. If you need true failover (try hosts in order, stop at the first
-success, sync from only that one), you will need to add a `break` after the first successful
-`fetch_and_upsert_data` call in `update()`.
 
 ## Configuration file
 The connector requires the following configuration parameters:
 
 ```json
 {
-  "hosts": ["<PRIMARY_HOST>:<PORT>", "<SECONDARY_HOST>:<PORT>", "<TERTIARY_HOST>:<PORT>"],
+  "hosts": ["<PRIMARY_SOURCE_HOST>:<PORT>", "<SECONDARY_SOURCE_HOST>:<PORT>", "<TERTIARY_SOURCE_HOST>:<PORT>"],
   "db_user": "<YOUR_POSTGRES_USER>",
   "db_password": "<YOUR_POSTGRES_PASSWORD>",
   "db_name": "<YOUR_POSTGRES_DATABASE_NAME>"
@@ -107,8 +96,8 @@ Standard PostgreSQL username/password authentication is used for all hosts. Cred
 
 ## Data handling
 1. Connects to every reachable host in the `hosts` list (not just the first).
-2. For each reachable host, opens a named server-side cursor to stream rows from the `test` table in batches of 1000, avoiding loading the full result set into memory.
-3. Upserts each row to the `test` destination table.
+2. For each reachable host, opens a named server-side cursor to stream rows from the `TEST` table in batches of 1000, avoiding loading the full result set into memory.
+3. Upserts each row to the `TEST` destination table.
 4. Checkpoints state (with `total_rows` count) after every batch of 1000 rows.
 
 ## Error handling
@@ -119,10 +108,13 @@ Standard PostgreSQL username/password authentication is used for all hosts. Cred
 ## Tables created
 | Table | Primary key | Description |
 | --- | --- | --- |
-| `test` | `id` | All rows streamed from the source `test` table on every reachable host. |
+| `TEST` | `id` | All rows streamed from the source `TEST` table on every reachable host. |
 
 ## Additional considerations
+- This example assumes the source table is named `TEST` and has an `id` column. Adjust `__TABLE_NAME` in `connector.py` and the schema definition for your source.
 - For production deployments, prefer TLS-enabled PostgreSQL connections by passing `sslmode="require"` to `psycopg2.connect()`.
-- Because rows from every reachable host are upserted using only `id` as the primary key, hosts whose `test` tables can contain the same `id` for different underlying rows (for example, independent shards) will silently overwrite each other's data in the destination. If your hosts don't share a globally unique `id` space, extend the primary key (and upserted row data) to include a per-host discriminator, such as the hostname.
+- Because rows from every reachable host are upserted using only `id` as the primary key, hosts whose `TEST` tables can contain the same `id` for different underlying rows (for example, independent shards) will silently overwrite each other's data in the destination. If your hosts don't share a globally unique `id` space, extend the primary key (and upserted row data) to include a per-host discriminator, such as the hostname.
+- If you want to use a custom key name in `configuration.json` for source host detail which is to be supported via proxy, you need to pass an extra argument during deployment. Refer to the `custom_proxy_host_key` example for more details.
+- `fivetran debug` runs locally and does not route through the Proxy Agent, so it cannot validate end-to-end Proxy Agent connectivity. To test connectivity, either deploy the connection with `--proxy-id` and run a sync, or run `fivetran debug` from within your private network where the data source is directly reachable.
 
 The examples provided are meant to help you get started with Fivetran's Connector SDK. While the connector has been tested, Fivetran is not responsible for any issues resulting from its use. For support, contact the Fivetran Support team.

@@ -28,8 +28,9 @@ import psycopg2.extras
 
 __CHECKPOINT_INTERVAL = 1000  # Number of records to process before checkpointing state
 __DEFAULT_POSTGRES_PORT = 5432  # Default PostgreSQL port
+__MAX_PORT_NUMBER = 65535  # Highest valid TCP port number
 __CONNECT_TIMEOUT_SECONDS = 10  # Per-host connection timeout to fail fast on unreachable hosts
-__TABLE_NAME = "test"  # Name of the source table to sync
+__TABLE_NAME = "TEST"  # Name of the source table to sync
 
 
 def validate_configuration(configuration: dict):
@@ -66,19 +67,46 @@ def split_host_port(host_entry: str):
         return "", __DEFAULT_POSTGRES_PORT
     if ":" in host_entry:
         hostname, port_str = host_entry.rsplit(":", 1)
-        return hostname.strip(), int(port_str)
+        return hostname.strip(), parse_port(port_str, host_entry)
     return host_entry, __DEFAULT_POSTGRES_PORT
+
+
+def parse_port(port_str: str, host_entry: str):
+    """
+    Parse and validate a TCP port from a host entry.
+    Args:
+        port_str: The port portion extracted from the host entry.
+        host_entry: The original host entry for error reporting.
+    Returns:
+        The validated port as an integer.
+    Raises:
+        ValueError: if the port is missing, non-numeric, or outside the valid TCP range.
+    """
+    port_str = (port_str or "").strip()
+    if not port_str:
+        raise ValueError(f"Host entry '{host_entry}' must include digits after ':'.")
+    if not port_str.isdigit():
+        raise ValueError(f"Host entry '{host_entry}' contains an invalid port: '{port_str}'.")
+
+    port = int(port_str)
+    if not 1 <= port <= __MAX_PORT_NUMBER:
+        raise ValueError(
+            f"Host entry '{host_entry}' contains port {port}, but valid ports are 1-{__MAX_PORT_NUMBER}."
+        )
+    return port
 
 
 def parse_hosts(hosts_value):
     """
     Parse hosts into an ordered list of (hostname, port) tuples.
     Accepts either a comma-separated string (as delivered by Fivetran in production) or a list
-    (as loaded from configuration.json during local debug). Empty entries are skipped.
+    (as loaded from configuration.json during local debug).
     Args:
         hosts_value: comma-separated string or list of host entries (e.g. "host1:5432,host2:5433").
     Returns:
         A list of (hostname, port) tuples preserving the configured order.
+    Raises:
+        ValueError: if any configured host entry is empty.
     """
     if isinstance(hosts_value, list):
         entries = hosts_value
@@ -89,7 +117,7 @@ def parse_hosts(hosts_value):
     for entry in entries:
         entry = entry.strip()
         if not entry:
-            continue
+            raise ValueError("Configuration value 'hosts' cannot contain empty host entries.")
         hostname, port = split_host_port(entry)
         if hostname:
             parsed.append((hostname, port))
@@ -214,6 +242,7 @@ def update(configuration: dict, state: dict):
             hostname=hostname, port=port, configuration=configuration
         )
         if connection is None:
+            log.warning(f"Skipping host {hostname}:{port} after connection failure.")
             continue
         connected_any = True
         fetch_and_upsert_data(database_connection=connection, state=state)

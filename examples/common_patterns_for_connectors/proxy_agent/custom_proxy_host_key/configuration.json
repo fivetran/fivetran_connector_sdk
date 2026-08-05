@@ -1,5 +1,5 @@
 {
-  "proxy_host": "<YOUR_FIVETRAN_PROXY_AGENT_HOST>:<YOUR_POSTGRES_PORT>",
+  "proxy_host": "<YOUR_POSTGRES_HOST>:<YOUR_POSTGRES_PORT>",
   "db_user": "<YOUR_POSTGRES_USER>",
   "db_password": "<YOUR_POSTGRES_PASSWORD>",
   "db_name": "<YOUR_POSTGRES_DATABASE_NAME>"
