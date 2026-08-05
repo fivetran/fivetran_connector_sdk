@@ -34,6 +34,20 @@ fivetran debug
 
 ## How it works
 
+```mermaid
+flowchart TD
+    A[Your Connector] -->|1. Fetch file| B[Source API/Storage]
+    B --> C[Create FileUpload object]
+    C -->|2. Upload| D[Operations.upsert with file parameter]
+    D --> E[Fivetran Platform]
+    E -->|3. Store| F[Destination Storage]
+    F --> G[Snowflake/BigQuery/Databricks]
+    G -->|4. Write metadata| H[Table with _fivetran_file_path]
+    H -->|5. Query & Download| I[Access files via path]
+```
+
+> **Note:** If the diagram above doesn't render, [view the SVG diagram here](assets/file-upload-flow.svg).
+
 The file upload process follows these steps:
 
 1. **Your Connector** fetches the file from the source (API, Cloud storage)
