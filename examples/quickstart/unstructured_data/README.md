@@ -34,8 +34,6 @@ fivetran debug
 
 ## How it works
 
-![File Upload Flow](assets/unstructured-data-sync-flow-diagram.svg)
-
 Uploading a file involves the following steps:
 
 1. Your connector fetches the file from the source (API, cloud storage).
@@ -46,6 +44,8 @@ Uploading a file involves the following steps:
 6. The Fivetran platform writes a metadata row to the destination table, including the automatically added `_fivetran_file_path` column with the file path.
 
 > To download the file from your destination, query the table to retrieve the `_fivetran_file_path` value, then use that value to download the file.
+
+![File Upload Flow](assets/unstructured-data-sync-flow-diagram.svg)
 
 ### The `_fivetran_file_path` column
 
