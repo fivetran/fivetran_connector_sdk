@@ -6,6 +6,9 @@
 # (https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#update)
 # and the Best Practices documentation (https://fivetran.com/docs/connector-sdk/best-practices) for details
 
+# Import json for reading configuration file
+import json
+
 # Import requests to make HTTP calls to API
 import requests as rq
 
@@ -190,14 +193,16 @@ def get_api_response(base_url, params):
 # This creates the connector object that will use the update and schema functions defined in this connector.py file.
 connector = Connector(update=update, schema=schema)
 
-# Check if the script is being run as the main module. This is Python's standard entry method allowing your script to
-# be run directly from the command line or IDE 'run' button. This is useful for debugging while you write your code.
-# Note this method is not called by Fivetran when executing your connector in production. Please test using the
-# Fivetran debug command prior to finalizing and deploying your connector.
+# Check if the script is being run as the main module.
+# This is Python's standard entry method allowing your script to be run directly from the command line or IDE 'run' button.
+# This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
+# Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from
-    # your IDE.
-    connector.debug()
+    # Open the configuration.json file and load its contents into a dictionary.
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
+    # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
+    connector.debug(configuration=configuration)
 
 # Resulting table:
 # ┌───────────────────────────────────────┬───────────────┬────────────────────────┬──────────────────────────┬───────────────────────────┐
