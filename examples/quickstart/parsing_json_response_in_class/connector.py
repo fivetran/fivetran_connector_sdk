@@ -5,6 +5,9 @@ See the Technical Reference documentation (https://fivetran.com/docs/connector-s
 and the Best Practices documentation (https://fivetran.com/docs/connector-sdk/best-practices) for details
 """
 
+# Import json for reading configuration file
+import json
+
 # Import required classes from fivetran_connector_sdk
 # For supporting Connector operations like Update() and Schema()
 from fivetran_connector_sdk import Connector
@@ -113,5 +116,8 @@ connector = Connector(update=update, schema=schema)
 # This is useful for debugging while you write your code. Note this method is not called by Fivetran when executing your connector in production.
 # Please test using the Fivetran debug command prior to finalizing and deploying your connector.
 if __name__ == "__main__":
+    # Open the configuration.json file and load its contents into a dictionary.
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
     # Adding this code to your `connector.py` allows you to test your connector by running your file directly from your IDE.
-    connector.debug(configuration={})
+    connector.debug(configuration=configuration)
