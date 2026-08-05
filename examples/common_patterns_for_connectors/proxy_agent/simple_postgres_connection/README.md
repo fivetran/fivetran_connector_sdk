@@ -1,9 +1,7 @@
 # Proxy Agent - Simple Postgres Connection Connector Example
 
 ## Connector overview
-This example demonstrates how to connect to a PostgreSQL instance from a Fivetran Connector SDK connector with [Fivetran Proxy Agent](https://fivetran.com/docs/core-concepts/architecture/hybrid-deployment). The connector reads PostgreSQL connection parameters from `configuration.json` where `host` is a single entry in the format `hostname:port`. It performs a full sync of the `TEST` table using a server-side streaming cursor.
-
-The Fivetran Proxy Agent runs inside your network and forwards traffic between Fivetran-hosted connectors and your private data sources. Because the proxy agent operates transparently at the network layer, your connector code does not need to know about it. You only need to make sure the `host` you configure is reachable from the proxy agent.
+This example demonstrates how to connect to a PostgreSQL instance from a Fivetran Connector SDK connector with the Fivetran Proxy Agent. The connector reads PostgreSQL connection parameters from `configuration.json` where `host` is a single entry in the format `hostname:port`. It performs a full sync of the `TEST` table using a server-side streaming cursor.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
@@ -106,7 +104,5 @@ The connector includes error handling for:
 - This example assumes the source table is named `TEST` and has an `id` column. Adjust `__TABLE_NAME` in `connector.py` and the schema definition for your source.
 - When using the Fivetran Proxy Agent, make sure the machine running the agent has network access to the PostgreSQL host.
 - For production deployments, prefer TLS-enabled PostgreSQL connections by passing `sslmode="require"` (or stricter) to `psycopg2.connect()`.
-- If you want to use a custom key name in `configuration.json` for source host detail which is to be supported via proxy, you need to pass an extra argument during deployment. Refer to the `custom_proxy_host_key` example for more details.
-- `fivetran debug` runs locally and does not route through the Proxy Agent, so it cannot validate end-to-end Proxy Agent connectivity. To test connectivity, either deploy the connection with `--proxy-id` and run a sync, or run `fivetran debug` from within your private network where the data source is directly reachable.
 
 The examples provided are meant to help you get started with Fivetran's Connector SDK. While the connector has been tested, Fivetran is not responsible for any issues resulting from its use. For support, contact the Fivetran Support team.

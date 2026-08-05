@@ -1,7 +1,7 @@
 # Proxy Agent - Multiple Hosts Connector Example
 
 ## Connector overview
-This example demonstrates how to connect to a PostgreSQL instance with the [Fivetran Proxy Agent](https://fivetran.com/docs/core-concepts/architecture/hybrid-deployment) when multiple candidate hosts are available. The connector reads the `hosts` key from `configuration.json` and connects to each configured host in order, extracts data.
+This example demonstrates how to connect to a PostgreSQL instance with the Fivetran Proxy Agent when multiple candidate hosts are available. The connector reads the `hosts` key from `configuration.json`, connects to each configured host in order, and extracts data from every reachable host.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
@@ -38,14 +38,14 @@ fivetran deploy \
 - `--api-key`: Your base64-encoded Fivetran API key and secret pair (`echo -n "API_KEY:API_SECRET" | base64`). You can also set the `FIVETRAN_API_KEY` environment variable and omit this flag.
 - `--destination`: The name of the destination in your Fivetran account where this connector will load data.
 - `--connection`: The name to assign to the connection in Fivetran. Use a new name for a fresh deployment, or an existing name to update it in place.
-- `--configuration`: Path to the `configuration.json` file. The `hosts` value must be a JSON array of `hostname:port` strings.
+- `--configuration`: Path to the `configuration.json` file. The `hosts` value can be provided as either a JSON array or a comma-separated string of `hostname:port` entries. A JSON array is preferred in `configuration.json`.
 - `--proxy-id`: The identifier of the Fivetran Proxy Agent to associate with this connection.
 
 Refer to the [Connector SDK `deploy` documentation](https://fivetran.com/docs/connector-sdk/setup-guide#deployyourconnectortofivetran) for the full list of options.
 
 ## Features
 - PostgreSQL connectivity via `psycopg2`
-- Accepts a JSON array of hosts and iterates in order
+- Accepts multiple `hostname:port` host entries and iterates in order
 - Uses a 10-second `connect_timeout` per host to fail fast on unreachable hosts
 - Full table sync using a server-side named cursor with `fetchmany()` for memory-safe streaming
 - Periodic checkpointing every 1000 records
@@ -54,8 +54,8 @@ Refer to the [Connector SDK `deploy` documentation](https://fivetran.com/docs/co
 This connector does **not** implement failover (it does not stop after the first successful
 connection). It attempts every configured host and syncs from **each one that is reachable**:
 
-1. `validate_configuration` ensures the `hosts` value is a comma-separated string and parses into at least one host.
-2. `parse_hosts` splits the comma-separated string, trims each entry, and splits `hostname:port`, preserving order.
+1. `validate_configuration` ensures the `hosts` value parses into at least one host entry.
+2. `parse_hosts` reads the configured host entries and parses comma-separated `hostname:port` values while preserving order. In `configuration.json`, you can provide `hosts` either as a JSON array or as a comma-separated string, though a JSON array is preferred.
 3. `update()` iterates over the parsed list and, for each host:
    - Calls `get_database_connection`, which attempts `psycopg2.connect(host=<current>, ...)` with a 10-second timeout.
    - On success, logs the connected host and proceeds to sync from it via `fetch_and_upsert_data`.
@@ -75,7 +75,7 @@ The connector requires the following configuration parameters:
 }
 ```
 
-- `hosts`: JSON array of PostgreSQL addresses in `hostname:port` format (for example, `["primary.internal:5432", "replica.internal:5433"]`). The connector tries entries in the order given. If a port is omitted, `5432` is used.
+- `hosts`: PostgreSQL addresses in `hostname:port` format. In `configuration.json`, you can provide this as a JSON array (for example, `["primary.internal:5432", "replica.internal:5433"]`). At runtime, the connector can also read the same values as a comma-separated string. The connector tries entries in the order given. If a port is omitted, `5432` is used.
 - `db_user`: PostgreSQL username shared across all hosts.
 - `db_password`: PostgreSQL password shared across all hosts.
 - `db_name`: Name of the database to connect to.
@@ -114,7 +114,5 @@ Standard PostgreSQL username/password authentication is used for all hosts. Cred
 - This example assumes the source table is named `TEST` and has an `id` column. Adjust `__TABLE_NAME` in `connector.py` and the schema definition for your source.
 - For production deployments, prefer TLS-enabled PostgreSQL connections by passing `sslmode="require"` to `psycopg2.connect()`.
 - Because rows from every reachable host are upserted using only `id` as the primary key, hosts whose `TEST` tables can contain the same `id` for different underlying rows (for example, independent shards) will silently overwrite each other's data in the destination. If your hosts don't share a globally unique `id` space, extend the primary key (and upserted row data) to include a per-host discriminator, such as the hostname.
-- If you want to use a custom key name in `configuration.json` for source host detail which is to be supported via proxy, you need to pass an extra argument during deployment. Refer to the `custom_proxy_host_key` example for more details.
-- `fivetran debug` runs locally and does not route through the Proxy Agent, so it cannot validate end-to-end Proxy Agent connectivity. To test connectivity, either deploy the connection with `--proxy-id` and run a sync, or run `fivetran debug` from within your private network where the data source is directly reachable.
 
 The examples provided are meant to help you get started with Fivetran's Connector SDK. While the connector has been tested, Fivetran is not responsible for any issues resulting from its use. For support, contact the Fivetran Support team.

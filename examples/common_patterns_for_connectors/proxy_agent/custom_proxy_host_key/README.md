@@ -1,9 +1,9 @@
 # Proxy Agent - Custom Proxy Host Key Connector Example
 
 ## Connector overview
-This example demonstrates how to connect to a PostgreSQL instance with [Fivetran Proxy Agent](https://fivetran.com/docs/core-concepts/architecture/hybrid-deployment)
+This example demonstrates how to connect to a PostgreSQL instance with the Fivetran Proxy Agent.
 
-The connector logic is identical to `proxy_agent/simple_postgres_connection`, except that the PostgreSQL host is read from the `proxy_host` key in `configuration.json`. Using a custom key makes it clear which source host should be used with the Fivetran Proxy Agent. This can be helpful when your team uses naming conventions such as `proxy_host`, `on_prem_host`, or `postgres_host`.
+The connector logic is identical to [simple_postgres_connection](../simple_postgres_connection/), except that the PostgreSQL host is read from the `proxy_host` key in `configuration.json`. Using a custom key makes it clear which source host should be used with the Fivetran Proxy Agent. This can be helpful when your team uses naming conventions such as `proxy_host`, `on_prem_host`, or `postgres_host`.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
@@ -46,7 +46,7 @@ fivetran deploy \
 - `--proxy-id`: The identifier of the Fivetran Proxy Agent to associate with this connection.
 - `--proxy-host-config-key`: The name of the configuration key in `configuration.json` that holds the source host address.
 
-If your `configuration.json` already uses `host` or `hosts` for the source host details, you do not need to pass `--proxy-host-config-key` during deployment. This argument is optional and is only needed when you use a custom key name such as `proxy_host`. Refer to the `simple_postgres_connection` example for a standard configuration example.
+If your `configuration.json` already uses `host` or `hosts` for the source host details, you do not need to pass `--proxy-host-config-key` during deployment. This argument is optional and is only needed when you use a custom key name such as `proxy_host`. Refer to [simple_postgres_connection](../simple_postgres_connection/) for a standard configuration example.
 
 Refer to the [Connector SDK `deploy` documentation](https://fivetran.com/docs/connector-sdk/setup-guide#deployyourconnectortofivetran) for the full list of options.
 
@@ -59,7 +59,7 @@ Refer to the [Connector SDK `deploy` documentation](https://fivetran.com/docs/co
 ## How to use a custom proxy host key
 The Fivetran Proxy Agent forwards TCP traffic from Fivetran to your private data source. To route your PostgreSQL connection through the proxy agent using this example:
 
-1. Install and register the Fivetran Proxy Agent in your network following the Fivetran documentation.
+1. Install and register the Fivetran Proxy Agent in your network following the [Proxy Agent documentation](https://fivetran.com/docs/connectors/databases/connection-options/proxy-agent).
 2. Identify the source PostgreSQL host and port that the proxy agent should forward traffic to inside your private network.
 3. Populate `configuration.json` with that source address under the  custom key ex: `proxy_host`:
    ```json
@@ -71,7 +71,7 @@ The Fivetran Proxy Agent forwards TCP traffic from Fivetran to your private data
    }
    ```
 
-At runtime the connector reads `configuration["proxy_host"]` and passes it as the `host` argument to `psycopg2.connect(...)`. The proxy agent handles the network hop into your private environment; no additional code change is required.
+At runtime, the connector reads `configuration["proxy_host"]`, splits the `host:port` value into separate host and port components, and passes them to `psycopg2.connect(...)`.
 
 ## Configuration file
 The connector requires the following configuration parameters:
@@ -124,6 +124,5 @@ Standard PostgreSQL username/password authentication. Credentials are read from 
 - Make sure the proxy agent has network access to your PostgreSQL instance.
 - Prefer TLS-enabled PostgreSQL connections by passing `sslmode="require"` to `psycopg2.connect()` for production deployments.
 - Keep the custom key name consistent across your team's connectors to make configurations easier to review.
-- `fivetran debug` runs locally and does not route through the Proxy Agent, so it cannot validate end-to-end Proxy Agent connectivity. To test connectivity, either deploy the connection with `--proxy-id` and run a sync, or run `fivetran debug` from within your private network where the data source is directly reachable.
 
 The examples provided are meant to help you get started with Fivetran's Connector SDK. While the connector has been tested, Fivetran is not responsible for any issues resulting from its use. For support, contact the Fivetran Support team.
