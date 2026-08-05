@@ -34,27 +34,15 @@ fivetran debug
 
 ## How it works
 
-```
-Your Connector
-  ↓
-  Downloads file from source API
-  ↓
-  Creates FileUpload(path="file.pdf", stream=...)
-  ↓
-  Calls Operations.upsert(table, data, file=...)
-  ↓
-Fivetran Platform
-  ↓
-  Loads the file to destination storage
-  ↓
-  Writes row to destination with _fivetran_file_path
-  ↓
-Destination (Snowflake/BigQuery/Databricks)
-  ↓
-  Table contains metadata columns + _fivetran_file_path
-  ↓
-  You can query/download files using the path
-```
+The file upload process follows these steps:
+
+1. **Your Connector** fetches the file from the source (API, Cloud storage)
+2. **Create FileUpload** object with the path where the file should be stored and a stream to read from (`FileUpload(path="file.pdf", stream=...)`)
+3. **Call Operations.upsert** with the file parameter to upload both the file and metadata (`op.upsert(table, data, file=...)`)
+4. **Fivetran Platform** receives the file and metadata from your connector
+5. **Load to destination** storage where the file is stored in the destination's file storage (Snowflake stages, BigQuery Cloud Storage, or Databricks volumes)
+6. **Write metadata row** to the destination table with the automatically added `_fivetran_file_path` column containing the file location
+7. **Query and download files** from your destination by querying the table for the `_fivetran_file_path` value and using it to download the actual file.
 
 ### The `_fivetran_file_path` column
 
@@ -115,21 +103,11 @@ Result:
 
 ## Common troubleshooting
 
-### `_fivetran_file_path` column is missing
-- ❌ Not passing `file=FileUpload(...)` parameter
-- ✅ Check whether your `upsert()` or `update()` call  includes the `file` parameter
-
-### "FileUpload object has no attribute 'read'"
-- ❌ Your stream object doesn't have a `read(size)` method
-- ✅ Use `response.raw`, `BytesIO`, or file object
-
-### File not appearing in destination
-- ❌ Not passing `file=FileUpload(...)` to `Operations.upsert()`
-- ✅ Check whether your `upsert()` call includes the `file` parameter
-
-### "expected_bytes mismatch"
-- ❌ File size changed during upload
-- ✅ Verify `expected_bytes` matches the actual file size
+| Issue | Solution |
+|-------|----------|
+| `_fivetran_file_path` column is missing or file not appearing in destination | Check whether your `upsert()` or `update()` call includes the `file=FileUpload(...)` parameter |
+| "FileUpload object has no attribute 'read'" | Ensure your stream object has a `read(size)` method. Use `response.raw`, `BytesIO`, or file object |
+| "expected_bytes mismatch" | Verify `expected_bytes` matches the actual file size |
 
 ---
 
