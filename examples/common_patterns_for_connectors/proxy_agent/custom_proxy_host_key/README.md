@@ -1,7 +1,7 @@
 # Proxy Agent - Custom Proxy Host Key Connector Example
 
 ## Connector overview
-This example demonstrates how to connect to a PostgreSQL instance with the Fivetran Proxy Agent.
+This example demonstrates how to connect to a PostgreSQL instance with the [Fivetran Proxy Agent](https://fivetran.com/docs/connectors/databases/connection-options/proxy-agent).
 
 The connector logic is identical to [simple_postgres_connection](../simple_postgres_connection/), except that the PostgreSQL host is read from the `proxy_host` key in `configuration.json`. Using a custom key makes it clear which source host should be used with the Fivetran Proxy Agent. This can be helpful when your team uses naming conventions such as `proxy_host`, `on_prem_host`, or `postgres_host`.
 

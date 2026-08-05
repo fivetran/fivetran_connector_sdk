@@ -2,7 +2,7 @@
 
 ## Overview
 
-These examples show how to connect a Connector SDK connector to a private PostgreSQL source through the Fivetran Proxy Agent.
+These examples show how to connect a Connector SDK connector to a private PostgreSQL source through the [Fivetran Proxy Agent](https://fivetran.com/docs/connectors/databases/connection-options/proxy-agent).
 
 The Proxy Agent runs inside your private network and forwards traffic between Fivetran-hosted connectors and your source system. In these examples, the connector passes the source PostgreSQL host details to `psycopg2.connect(...)`, and the Proxy Agent handles the network path to that source.
 

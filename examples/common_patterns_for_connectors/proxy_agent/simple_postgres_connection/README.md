@@ -1,7 +1,7 @@
 # Proxy Agent - Simple Postgres Connection Connector Example
 
 ## Connector overview
-This example demonstrates how to connect to a PostgreSQL instance from a Fivetran Connector SDK connector with the Fivetran Proxy Agent. The connector reads PostgreSQL connection parameters from `configuration.json` where `host` is a single entry in the format `hostname:port`. It performs a full sync of the `TEST` table using a server-side streaming cursor.
+This example demonstrates how to connect to a PostgreSQL instance from a Fivetran Connector SDK connector with the [Fivetran Proxy Agent](https://fivetran.com/docs/connectors/databases/connection-options/proxy-agent). The connector reads PostgreSQL connection parameters from `configuration.json` where `host` is a single entry in the format `hostname:port`. It performs a full sync of the `TEST` table using a server-side streaming cursor.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)

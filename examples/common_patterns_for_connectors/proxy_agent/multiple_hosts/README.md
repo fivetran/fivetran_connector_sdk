@@ -1,7 +1,7 @@
 # Proxy Agent - Multiple Hosts Connector Example
 
 ## Connector overview
-This example demonstrates how to connect to a PostgreSQL instance with the Fivetran Proxy Agent when multiple candidate hosts are available. The connector reads the `hosts` key from `configuration.json`, connects to each configured host in order, and extracts data from every reachable host.
+This example demonstrates how to connect to a PostgreSQL instance with the [Fivetran Proxy Agent](https://fivetran.com/docs/connectors/databases/connection-options/proxy-agent) when multiple candidate hosts are available. The connector reads the `hosts` key from `configuration.json`, connects to each configured host in order, and extracts data from every reachable host.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/fivetran_connector_sdk/blob/main/README.md#requirements)
