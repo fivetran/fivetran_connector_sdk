@@ -36,7 +36,7 @@ fivetran debug
 
 ![File Upload Flow](assets/unstructured-data-sync-flow-diagram.svg)
 
-The file upload process follows these steps:
+Uploading a file involves the following steps:
 
 1. **Your Connector** fetches the file from the source (API, Cloud storage)
 2. **Create FileUpload** object with the path where the file should be stored and a stream to read from (`FileUpload(path="file.pdf", stream=...)`)
