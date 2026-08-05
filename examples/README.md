@@ -113,9 +113,10 @@ These examples demonstrate common patterns and best practices for building conne
 
 ### Proxy Agent
 
-- [simple_postgres_connection](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/proxy_agent/simple_postgres_connection) - This example demonstrates how to connect to a PostgreSQL instance behind a Fivetran Proxy Agent using a single `host` entry in `hostname:port` format from `configuration.json`. It uses `psycopg2-binary` and performs an incremental sync using the `modified_at` column.
-- [custom_proxy_host_key](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/proxy_agent/custom_proxy_host_key) - This example demonstrates how to connect to a PostgreSQL instance behind a Fivetran Proxy Agent using a custom configuration key (e.g. `proxy_host`) instead of the generic `host` field. It also shows how to pass `--proxy-host-config-key` at deploy time to match the custom key.
-- [multiple_hosts](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/common_patterns_for_connectors/proxy_agent/multiple_hosts) - This example demonstrates how to connect to a PostgreSQL instance behind Fivetran Proxy Agents when multiple candidate hosts are configured. It reads `hosts` as a JSON array of `hostname:port` entries and tries each in order until one accepts the connection, providing failover for multi-proxy or replica setups.
+- [proxy_agent](https://github.com/fivetran/connector_sdk/tree/main/examples/common_patterns_for_connectors/proxy_agent) - Learn how to connect to private PostgreSQL sources using the Fivetran Proxy Agent. Includes three examples:
+  - [simple_postgres_connection](https://github.com/fivetran/connector_sdk/tree/main/examples/common_patterns_for_connectors/proxy_agent/simple_postgres_connection) - Connect to one PostgreSQL source using a single `host` entry in `configuration.json`.
+  - [multiple_hosts](https://github.com/fivetran/connector_sdk/tree/main/examples/common_patterns_for_connectors/proxy_agent/multiple_hosts) - Connect to multiple PostgreSQL source hosts and try each host in order during a sync.
+  - [custom_proxy_host_key](https://github.com/fivetran/connector_sdk/tree/main/examples/common_patterns_for_connectors/proxy_agent/custom_proxy_host_key) - Use a custom configuration key such as `proxy_host` instead of the standard `host` key for source host details.
 
 ### Data handling
 
@@ -125,7 +126,7 @@ These examples demonstrate common patterns and best practices for building conne
 
 ### Workflows
 
-- [github](https://github.com/fivetran/fivetran_connector_sdk/tree/main/examples/workflows/github) - This is an example of a GitHub workflow to deploy a hello connector after a push to the hello directory. It uses GitHub secrets and environment variables to create a configuration.json file that is included in the deployment.
+- [github](https://github.com/fivetran/connector_sdk/tree/main/examples/workflows/github) - This is an example of a GitHub workflow to deploy a hello connector after a push to the hello directory. It uses GitHub secrets and environment variables to create a configuration.json file that is included in the deployment.
 </details>
 
 ## AI and Connector SDK
