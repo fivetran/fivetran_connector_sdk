@@ -143,7 +143,7 @@ def update(configuration: dict, state: dict):
                     "Primary key 'zipcode' is empty in source data. "
                     "Stopping sync to avoid writing non-identifiable rows."
                 ),
-                trace=("Empty zipcode check , at {row_number}."),
+                trace=(f"Empty zipcode check at row {row_number}."),
             )
             return
 
