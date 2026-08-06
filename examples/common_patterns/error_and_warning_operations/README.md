@@ -18,7 +18,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connector-sdk
 To initialize a new Connector SDK project using this connector as a starting point, run:
 
 ```bash
-fivetran init <project-path> --template examples/common_patterns/error_and_warning_operations
+fivetran init --template examples/common_patterns/error_and_warning_operations
 ```
 
 ## Features
