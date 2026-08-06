@@ -5,12 +5,14 @@ It emits two warnings and then one terminal error for an empty primary key.
 
 # For reading mock weather records from a CSV file
 import csv
+import trace
 
 # For parsing optional date values
 from datetime import datetime
 
 # For resolving local file paths relative to this connector file
 from pathlib import Path
+from threading import enumerate
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
@@ -67,7 +69,7 @@ def is_valid_optional_date(date_value: str):
         True when date is empty or in YYYY-MM-DD format; otherwise False.
     """
     if not date_value:
-        return True
+        return False
 
     try:
         datetime.strptime(date_value, __DATE_FORMAT)
@@ -106,7 +108,9 @@ def update(configuration: dict, state: dict):
     validate_configuration(configuration=configuration)
     source_rows = read_mock_weather_rows()
 
+    row_number = 0
     for row in source_rows:
+        row_number += 1
         zipcode = str(row.get("zipcode", "")).strip()
         city = str(row.get("city", "")).strip()
         weather = str(row.get("weather", "")).strip()
@@ -138,7 +142,8 @@ def update(configuration: dict, state: dict):
                 message=(
                     "Primary key 'zipcode' is empty in source data. "
                     "Stopping sync to avoid writing non-identifiable rows."
-                )
+                ),
+                trace=("Empty zipcode check , at {row_number}."),
             )
             return
 

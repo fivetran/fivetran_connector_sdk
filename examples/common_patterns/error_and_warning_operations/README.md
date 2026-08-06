@@ -1,7 +1,7 @@
 # Error and warning operations connector example
 
 ## Connector overview
-This connector demonstrates how to use `op.warning()` for recoverable row-level problems and `op.error()` for a terminal data-integrity problem in one sync run.
+This connector demonstrates how to use [`op.warning()`](https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-operations#warning) for recoverable row-level problems and [`op.error()`](https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-operations#error) for a terminal data-integrity problem in one sync run.
 
 The source is a local `mock_weather.csv` file with columns `zipcode`, `city`, `weather`, and `date`. The connector writes to the `weather` table with `zipcode` as the primary key.
 
@@ -41,8 +41,11 @@ Valid rows are upserted into `WEATHER`.
 ## Error handling
 The connector uses:
 
-- `op.warning()` for recoverable row-level quality issues
-- `op.error()` when primary key identity is missing and data can no longer be safely written
+- [`op.warning(message="...")`](https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-operations#warning) for recoverable row-level quality issues.
+  - `message` (str): non-empty warning text shown in the dashboard. In this example, it is used for empty `city` and invalid `date` format rows that are skipped.
+- [`op.error(message="...", trace="...")`](https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-operations#error) when primary key identity is missing and data can no longer be safely written.
+  - `message` (str): non-empty fatal error text shown in the dashboard.
+  - `trace` (str, optional): extra debug context such as failed check name, row number, and row values.
 
 `op.error()` terminates the sync immediately.
 
