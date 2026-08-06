@@ -86,8 +86,8 @@ The connector requires the following configuration parameters:
 ```
 
 - `proxy_host` (required): PostgreSQL address in `hostname:port` format (for example, `db.internal:5432`). When using the Fivetran Proxy Agent, this should be the address of the database as it is reachable from the machine running the proxy agent. If the port is omitted, `5432` is used.
-- `db_user` (required): PostgreSQL username.
-- `db_password` (required): PostgreSQL password.
+- `db_user` (required): Your PostgreSQL username.
+- `db_password` (required): Your PostgreSQL password.
 - `db_name` (required): Name of the database to connect to.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.

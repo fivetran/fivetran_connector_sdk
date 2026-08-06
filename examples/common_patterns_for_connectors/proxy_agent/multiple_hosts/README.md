@@ -75,10 +75,10 @@ The connector requires the following configuration parameters:
 }
 ```
 
-- `hosts`: PostgreSQL addresses in `hostname:port` format. In `configuration.json`, you can provide this as a JSON array (for example, `["primary.internal:5432", "replica.internal:5433"]`). At runtime, the connector can also read the same values as a comma-separated string. The connector tries entries in the order given. If a port is omitted, `5432` is used.
-- `db_user`: PostgreSQL username shared across all hosts.
-- `db_password`: PostgreSQL password shared across all hosts.
-- `db_name`: Name of the database to connect to.
+- `hosts` (required): PostgreSQL addresses in `hostname:port` format. In `configuration.json`, you can provide this as a JSON array (for example, `["primary.internal:5432", "replica.internal:5433"]`). At runtime, the connector can also read the same values as a comma-separated string. The connector tries entries in the order given. If a port is omitted, `5432` is used.
+- `db_user` (required): Your PostgreSQL username shared across all hosts.
+- `db_password` (required): Your PostgreSQL password shared across all hosts.
+- `db_name` (required): Name of the database to connect to.
 
 Note: Ensure that the `configuration.json` file is not checked into version control to protect sensitive information.
 
