@@ -101,8 +101,8 @@ These examples demonstrate common patterns and best practices for building conne
 
 ### Error handling and resilience
 
-- [error_handling](https://github.com/fivetran/connector_sdk/tree/main/examples/common_patterns/errors) - This example shows how to handle errors throughout the Connector SDK process and is driven by the configuration.json error_simulation_type value.
 - [error_and_warning_operations](https://github.com/fivetran/connector_sdk/tree/main/examples/common_patterns/error_and_warning_operations) - This example demonstrates the `warning()` and `error()` operations with a mock weather CSV source.
+- [error_handling](https://github.com/fivetran/connector_sdk/tree/main/examples/common_patterns/errors) - This example shows how to handle errors throughout the Connector SDK process and is driven by the `configuration.json` `error_simulation_type` value.
 - [update_and_delete](https://github.com/fivetran/connector_sdk/tree/main/examples/common_patterns/update_and_delete) - This example shows how to handle composite primary keys while using update and delete operations with a PostgreSQL database as the data source.
 
 
