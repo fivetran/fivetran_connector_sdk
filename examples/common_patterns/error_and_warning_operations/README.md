@@ -36,7 +36,7 @@ The connector processes rows from `mock_weather.csv` and applies these checks in
 2. If `date` is present but not in `YYYY-MM-DD` format, it emits warning 2 and skips the row.
 3. If `zipcode` (primary key) is empty, it emits a terminal error and exits immediately.
 
-Valid rows are upserted into `weather`.
+Valid rows are upserted into `WEATHER`.
 
 ## Error handling
 The connector uses:
@@ -47,7 +47,7 @@ The connector uses:
 `op.error()` terminates the sync immediately.
 
 ## Tables created
-
+The connector creates the `WEATHER` table.
 ```json
 {
   "table": "weather",
