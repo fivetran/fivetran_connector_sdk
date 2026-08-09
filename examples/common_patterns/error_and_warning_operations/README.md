@@ -45,7 +45,7 @@ The connector uses:
   - `message` (string): non-empty warning text shown in the dashboard. In this example, it is used for empty `city` and invalid `date` format rows that are skipped.
 - [`op.error(message="...", trace="...")`](https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-operations#error) when primary key identity is missing and data can no longer be safely written.
   - `message` (string): non-empty fatal error text shown in the dashboard.
-  - `trace` (str, optional): extra debug context such as failed check name, row number, and row values.
+  - `trace` (string, optional): extra debug context such as failed check name, row number, and row values.
 
 `op.error()` terminates the sync immediately.
 
