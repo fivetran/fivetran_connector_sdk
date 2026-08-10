@@ -5,14 +5,12 @@ It emits two warnings and then one terminal error for an empty primary key.
 
 # For reading mock weather records from a CSV file
 import csv
-import trace
 
 # For parsing optional date values
 from datetime import datetime
 
 # For resolving local file paths relative to this connector file
 from pathlib import Path
-from threading import enumerate
 
 # Import required classes from fivetran_connector_sdk
 from fivetran_connector_sdk import Connector
