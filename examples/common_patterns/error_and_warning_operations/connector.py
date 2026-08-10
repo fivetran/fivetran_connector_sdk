@@ -1,10 +1,17 @@
 """
 This example demonstrates op.warning() and op.error() in one deterministic flow.
 It emits two warnings and then one terminal error for an empty primary key.
+See the Technical Reference documentation
+(https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-code/connector-sdk-methods#update)
+and the Best Practices documentation
+(https://fivetran.com/docs/connector-sdk/best-practices) for details.
 """
 
 # For reading mock weather records from a CSV file
 import csv
+
+# For reading configuration from a JSON file
+import json
 
 # For parsing optional date values
 from datetime import datetime
@@ -180,4 +187,9 @@ connector = Connector(update=update, schema=schema)
 # Note: This method is not called by Fivetran when executing your connector in production.
 # Always test using 'fivetran debug' prior to finalizing and deploying your connector.
 if __name__ == "__main__":
-    connector.debug()
+    # Open the configuration.json file and load its contents
+    with open("configuration.json", "r") as f:
+        configuration = json.load(f)
+
+    # Test the connector locally
+    connector.debug(configuration=configuration)
