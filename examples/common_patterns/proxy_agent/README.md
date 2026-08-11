@@ -6,6 +6,8 @@ These examples show how to connect a Connector SDK connector to a private Postgr
 
 The Proxy Agent runs inside your private network and forwards traffic between Fivetran-hosted connectors and your source system. In these examples, the connector passes the source PostgreSQL host details to `psycopg2.connect(...)`, and the Proxy Agent handles the network path to that source.
 
+> Note: `fivetran debug` runs locally and does not route through the Proxy Agent, so it cannot validate end-to-end Proxy Agent connectivity. To test connectivity, either deploy the connection with `--proxy-id`, or run `fivetran debug` from within your private network where the data source is directly reachable.
+
 ---
 
 ## Getting started
@@ -33,5 +35,4 @@ When the connection is deployed with `--proxy-id`, Fivetran routes the connector
 ## Common notes
 
 - The configured `host`, `hosts`, or custom host key should contain the source PostgreSQL address in `hostname:port` format.
-- To test Proxy Agent connectivity, either deploy the connection with `--proxy-id` and run a sync, or run `fivetran debug` from within your private network where the source is directly reachable.
 - If you use a custom configuration key for source host details, pass `--proxy-host-config-key` during deployment. If you use the standard `host` or `hosts` keys, that extra argument is not needed.
