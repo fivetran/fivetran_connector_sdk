@@ -112,6 +112,13 @@ These examples demonstrate common patterns and best practices for building conne
 - [Password-based Authentication](https://github.com/fivetran/connector_sdk/tree/main/examples/common_patterns/ssh_tunnels/password_based_authentication) - This example demonstrates how to connect to an SSH server using password-based authentication with the Fivetran Connector SDK. The connector securely establishes an SSH session to a remote EC2 instance running the fivetran-api-playground server and facilitates data interaction over the SSH Tunnel. This setup uses passwords for authentication.
 - [using_bastion_server](https://github.com/fivetran/connector_sdk/tree/main/examples/common_patterns/ssh_tunnels/using_bastion_server) - This example shows how to connect to a database server behind a bastion server using SSH tunneling. It uses the `sshtunnel` library to create an SSH tunnel and `psycopg2-binary` to connect to a PostgreSQL database through the tunnel.
 
+### Proxy Agent
+
+- [proxy_agent](https://github.com/fivetran/connector_sdk/tree/main/examples/common_patterns/proxy_agent) - Learn how to connect to private PostgreSQL sources using the Fivetran Proxy Agent. Includes three examples:
+  - [custom_proxy_host_key](https://github.com/fivetran/connector_sdk/tree/main/examples/common_patterns/proxy_agent/custom_proxy_host_key) - Use a custom configuration key such as `proxy_host` instead of the standard `host` key for source host details.
+  - [multiple_hosts](https://github.com/fivetran/connector_sdk/tree/main/examples/common_patterns/proxy_agent/multiple_hosts) - Connect to multiple PostgreSQL source hosts and try each host in order during a sync.
+  - [simple_postgres_connection](https://github.com/fivetran/connector_sdk/tree/main/examples/common_patterns/proxy_agent/simple_postgres_connection) - Connect to one PostgreSQL source using a single `host` entry in `configuration.json`.
+
 ### Data handling
 
 - [three_operations](https://github.com/fivetran/connector_sdk/tree/main/examples/common_patterns/three_operations) - This example shows how to use upsert, update and delete operations.

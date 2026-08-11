@@ -1,0 +1,6 @@
+{
+  "hosts": ["<PRIMARY_SOURCE_HOST>:<PORT>","<SECONDARY_SOURCE_HOST>:<PORT>","<TERTIARY_SOURCE_HOST>:<PORT>"],
+  "db_user": "<YOUR_POSTGRES_USER>",
+  "db_password": "<YOUR_POSTGRES_PASSWORD>",
+  "db_name": "<YOUR_POSTGRES_DATABASE_NAME>"
+}
