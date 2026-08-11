@@ -20,7 +20,7 @@ Refer to the [Connector SDK Setup Guide](https://fivetran.com/docs/connector-sdk
 To initialize a new Connector SDK project using this connector as a starting point, run:
 
 ```bash
-fivetran init --template examples/common_patterns_for_connectors/proxy_agent/custom_proxy_host_key
+fivetran init --template examples/common_patterns/proxy_agent/custom_proxy_host_key
 ```
 
 `fivetran init` initializes a new Connector SDK project by setting up the project structure, configuration files, and a connector.
