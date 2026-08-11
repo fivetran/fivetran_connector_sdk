@@ -5,7 +5,7 @@ This example demonstrates how to connect to a PostgreSQL instance with the [Five
 
 The connector logic is identical to [simple_postgres_connection](../simple_postgres_connection/), except that the PostgreSQL host is read from the `proxy_host` key in `configuration.json`. Using a custom key makes it clear which source host should be used with the Fivetran Proxy Agent. This can be helpful when your team uses naming conventions such as `proxy_host`, `on_prem_host`, or `postgres_host`.
 
-> Note: `fivetran debug` runs locally and does not route through the Proxy Agent, so it cannot validate end-to-end Proxy Agent connectivity. To test connectivity, either deploy the connection with `--proxy-id`, or run `fivetran debug` from within your private network where the data source is directly reachable.
+> Note: `fivetran debug` runs locally and does not route through the Proxy Agent, so it cannot validate end-to-end Proxy Agent connectivity. To test connectivity, deploy the connection with both `--proxy-id` and `--proxy-host-config-key`, or run `fivetran debug` from within your private network where the data source is directly reachable.
 
 ## Requirements
 - [Supported Python versions](https://github.com/fivetran/connector_sdk/blob/main/README.md#requirements)
