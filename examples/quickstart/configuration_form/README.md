@@ -4,7 +4,7 @@
 
 This example demonstrates how to define a connector setup form using `ConfigurationForm`, `form_field`, and `Test` from the Fivetran Connector SDK. It covers plain text, password, dropdown, and toggle fields, including dropdown options with labels and descriptions. It also shows how to register a connection test that Fivetran runs when the user clicks **Test Connection** during setup.
 
-The API fields (`api_base_url`, `api_key`) in the configuration form illustrate how a real connector would collect connection details. The `configuration.json` file provided contains sample values for running the connector locally.
+The API fields (`api_base_url`, `api_key`) in the configuration form illustrate how a real connector would collect connection details. An empty `configuration.json` file is included as a placeholder — you can populate it by running `fivetran configuration` or by providing values through the Fivetran UI after deployment.
 
 Refer to `def configuration_form()` and `def connection_test()` in `connector.py` for the main setup form and test implementation.
 
@@ -49,6 +49,11 @@ For available CLI commands, refer to the [Connector SDK Commands](https://fivetr
    ```bash
    fivetran debug --configuration configuration.json
    ```
+
+> **Note**: The `configuration.json` file is **mandatory** when deploying the connector using `fivetran deploy`. You have two options:
+> 
+> - **Option 1**: If you don't have credentials yet, include an empty `configuration.json` file (or one with placeholder values) in your deployment. You can then provide the actual values through the Fivetran UI setup form after deployment.
+> - **Option 2**: If you have credentials, run `fivetran configuration` to interactively populate the `configuration.json` file with real values, then deploy using `fivetran deploy`.
 
 ## Features
 
