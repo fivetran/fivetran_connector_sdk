@@ -50,7 +50,11 @@ For available CLI commands, refer to the [Connector SDK Commands](https://fivetr
    fivetran debug --configuration configuration.json
    ```
 
-> **Note**: A `configuration.json` file is required when deploying the connector using `fivetran deploy`. See the [configuration resolution order](https://fivetran.com/docs/connector-sdk/connector-development-and-configuration/configuration-json#configurationresolutionorder) documentation for details. You have two options:
+{% note %}                                                                                                                                                                                                                                     
+You can deploy this connector with:                                                                                                                                                                                                          
+- An empty `configuration.json` file. Configuration values are then provided through the Fivetran UI setup form after deployment.                                                                                                              
+- A pre-populated `configuration.json` file from running `fivetran configuration`. The setup form displays the values already filled in.
+{% /note %}
 > 
 > - **Option 1**: Deploy with an empty `configuration.json` file and provide values through the Fivetran UI setup form after deployment.
 > - **Option 2**: Run `fivetran configuration` to populate the `configuration.json` file with values, then deploy using `fivetran deploy`.
