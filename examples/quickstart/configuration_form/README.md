@@ -6,7 +6,7 @@ This example demonstrates how to define a connector setup form using `Configurat
 
 The API fields (`api_base_url`, `api_key`) in the configuration form illustrate how a real connector would collect connection details.
 
->Note: This project includes an empty `configuration.json` because it is required during deployment. You can optionally populate it and then deploy with the pre-populated file so the values appear pre-filled in the [setup form](https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-setup-form). 
+> Note: This project includes an empty `configuration.json` because it is required during deployment. You can optionally populate it and then deploy with the pre-populated file so the values appear pre-filled in the [setup form](https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-setup-form). 
 
 Refer to `def configuration_form()` and `def connection_test()` in `connector.py` for the main setup form and test implementation.
 
