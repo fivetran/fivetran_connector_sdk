@@ -7,7 +7,7 @@ This example demonstrates how to define a connector setup form using `Configurat
 The API fields (`api_base_url`, `api_key`) in the configuration form illustrate how a real connector would collect connection details.
 
 {% note %}
-This project includes an empty `configuration.json` because it is required during deployment. You can optionally populate it to test the setup form fields, then deploy with the pre-populated file so the values appear pre-filled in the setup form. 
+This project includes an empty `configuration.json` because it is required during deployment. You can optionally populate it, then deploy with the pre-populated file so the values appear pre-filled in the setup form. 
 {% /note %}
 
 Refer to `def configuration_form()` and `def connection_test()` in `connector.py` for the main setup form and test implementation.
