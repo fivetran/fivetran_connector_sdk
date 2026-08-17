@@ -55,7 +55,7 @@ For available CLI commands, refer to the [Connector SDK Commands](https://fivetr
    ```
 
 {% note %}                                                                                                                                                                                                                                     
-You can deploy this connector with:                                                                                                                                                                                                          
+You can deploy this connector using one of these options:                                                                                                                                                                                                          
 - An empty `configuration.json` file. Configuration values are then provided through the Fivetran UI setup form after deployment.                                                                                                              
 - A pre-populated `configuration.json` file from running `fivetran configuration`. The setup form displays the values already filled in.
 {% /note %}
