@@ -6,6 +6,8 @@ This example demonstrates how to define a connector setup form using `Configurat
 
 The API fields (`api_base_url`, `api_key`) in the configuration form illustrate how a real connector would collect connection details.
 
+For more details on creating configuration forms, refer to the [Setup Form](https://fivetran.com/docs/connector-sdk/technical-reference/connector-sdk-setup-form) documentation.
+
 {% note %}
 This project includes an empty `configuration.json` because it is required during deployment. You can optionally populate it and then deploy with the pre-populated file so the values appear pre-filled in the setup form. 
 {% /note %}
@@ -57,7 +59,7 @@ For available CLI commands, refer to the [Connector SDK Commands](https://fivetr
 {% note %}                                                                                                                                                                                                                                     
 You can deploy this connector using one of these options:                                                                                                                                                                                                          
 - An empty `configuration.json` file. Configuration values are then provided through the Fivetran UI setup form after deployment.                                                                                                              
-- A pre-populated `configuration.json` file from running `fivetran configuration`. The setup form displays the values already filled in.
+- A pre-populated `configuration.json` file (created either by running `fivetran configuration` or manually editing the file). The setup form displays the values already filled in.
 {% /note %}
 
 ## Features
