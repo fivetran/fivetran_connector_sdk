@@ -123,7 +123,10 @@ def update_configuration(config, new_token):
     # check, `fivetran debug` always fails here because FIVETRAN_CONNECTION_ID is a placeholder
     # ("test_connection_id") and fivetran_api_key has no real value to authenticate with.
     if os.environ.get("FIVETRAN_DEPLOYMENT_MODEL") == "local_debug":
-        log.info(f"[local_debug] Skipping Fivetran REST API call. Would have PATCHed {update_url} with: {payload}")
+        # Log only the config keys being updated, never the values -- config holds secrets
+        # (username, password, fivetran_api_key, token) that must not be written to logs.
+        updated_keys = [entry["key"] for entry in payload["config"]["secrets_list"]]
+        log.info(f"[local_debug] Skipping Fivetran REST API call. Would have PATCHed {update_url} with keys: {updated_keys}")
         return
 
     headers = {
