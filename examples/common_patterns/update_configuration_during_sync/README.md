@@ -70,6 +70,7 @@ Authentication is done via a two-step session process:
     Example:
     `Authorization: Token <SESSION_TOKEN>`
 - The session token expires after a set duration (`__TOKEN_EXPIRY_TIME`). The connector refreshes the token as needed and updates the configuration using Fivetran REST API.
+- When running via `fivetran debug`, the SDK sets the `FIVETRAN_DEPLOYMENT_MODEL` environment variable to `local_debug`. The connector checks for this and skips the live Fivetran REST API call in that case (logging what would have been sent instead), since there is no real connection to update locally.
 
 
 ## Pagination

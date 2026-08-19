@@ -117,6 +117,20 @@ def update_configuration(config, new_token):
         }
     }
 
+    # The SDK sets FIVETRAN_DEPLOYMENT_MODEL="local_debug" during `fivetran debug` (as opposed to
+    # "managed_cloud" or "hybrid_cloud" in production). There is no real connection to update in that
+    # case, so skip the live REST API call and log what would have been sent instead. Without this
+    # check, `fivetran debug` always fails here because FIVETRAN_CONNECTION_ID is a placeholder
+    # ("test_connection_id") and fivetran_api_key has no real value to authenticate with.
+    if os.environ.get("FIVETRAN_DEPLOYMENT_MODEL") == "local_debug":
+        # Log only the config keys being updated, never the values -- config holds secrets
+        # (username, password, fivetran_api_key, token) that must not be written to logs.
+        updated_keys = [entry["key"] for entry in payload["config"]["secrets_list"]]
+        log.info(
+            f"[local_debug] Skipping Fivetran REST API call. Would have PATCHed {update_url} with keys: {updated_keys}"
+        )
+        return
+
     headers = {
         "Accept": "application/json;version=2",
         "Authorization": f"Basic {fivetran_api_key}",
