@@ -36,6 +36,7 @@ def update(configuration: dict, state: dict):
     # - The second argument is a dictionary containing the data to be upserted,
     log.debug("upserting to table 'hello'")
     op.upsert(table="hello", data={"message": "hello, world!"})
+    op.upsert(table="hello", data={"message": "hello, world! 2"})
 
     # Save the progress by checkpointing the state. This is important for ensuring that the sync process can resume
     # from the correct position in case of next sync or interruptions.
