@@ -1,0 +1,4 @@
+fivetran-connector-sdk
+requests
+python-dateutil
+pytz
