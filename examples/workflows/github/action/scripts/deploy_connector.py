@@ -44,6 +44,7 @@ import requests
 FIRST_DEPLOY_ERROR = "configuration is required"
 SETUP_TESTS_FAILED = "setup tests failed"
 FIVETRAN_API_BASE_URL = "https://api.fivetran.com/v1"
+API_TIMEOUT_SECONDS = 30
 
 
 def env(name: str, default: str = "") -> str:
@@ -78,17 +79,37 @@ def derive_connection_name(connector_dir: Path) -> str:
     return slug
 
 
+def fivetran_executable() -> str:
+    """Resolve the `fivetran` console script installed next to this interpreter.
+
+    This script is invoked as `<connector_dir>/.venv/bin/python deploy_connector.py`
+    (see action.yml) rather than via `source .venv/bin/activate`, so the venv's
+    bin/ directory was never added to PATH -- a bare "fivetran" would only
+    resolve by coincidence. sys.executable always points into that same venv.
+    """
+    candidate = Path(sys.executable).parent / "fivetran"
+    return str(candidate) if candidate.is_file() else "fivetran"
+
+
 def activate_connection(api_key: str, connection_id: str) -> None:
     """Unpauses a newly created connection via the Fivetran API.
 
     The `fivetran deploy` CLI has no flag for this -- it hardcodes new
     connections to paused=True -- so activation is a separate API call.
     """
-    response = requests.patch(
-        f"{FIVETRAN_API_BASE_URL}/connectors/{connection_id}",
-        headers={"Authorization": f"Basic {api_key}"},
-        json={"paused": False},
-    )
+    try:
+        response = requests.patch(
+            f"{FIVETRAN_API_BASE_URL}/connectors/{connection_id}",
+            headers={"Authorization": f"Basic {api_key}"},
+            json={"paused": False},
+            timeout=API_TIMEOUT_SECONDS,
+        )
+    except requests.exceptions.RequestException as exc:
+        gha_notice(
+            f"connection {connection_id} was created but activation failed: {exc}",
+            level="warning",
+        )
+        return
     if response.ok:
         gha_notice(f"connection {connection_id} activated")
     else:
@@ -106,10 +127,17 @@ def report_active_state(api_key: str, connection_id: str) -> None:
     accurate for every status -- including "updated", where this run may not
     have touched the connection's paused/active state at all.
     """
-    response = requests.get(
-        f"{FIVETRAN_API_BASE_URL}/connectors/{connection_id}",
-        headers={"Authorization": f"Basic {api_key}"},
-    )
+    try:
+        response = requests.get(
+            f"{FIVETRAN_API_BASE_URL}/connectors/{connection_id}",
+            headers={"Authorization": f"Basic {api_key}"},
+            timeout=API_TIMEOUT_SECONDS,
+        )
+    except requests.exceptions.RequestException as exc:
+        gha_notice(
+            f"could not read connection {connection_id}'s current state: {exc}", level="warning"
+        )
+        return
     if not response.ok:
         gha_notice(
             f"could not read connection {connection_id}'s current state "
@@ -158,7 +186,7 @@ def main() -> int:
     use_config = bool(configuration_json)
     config_path = connector_dir / "configuration.json"
 
-    base_cmd = ["fivetran", "deploy", "--connection", connection_name, "--yes"]
+    base_cmd = [fivetran_executable(), "deploy", "--connection", connection_name, "--yes"]
     if destination:
         base_cmd += ["--destination", destination]
     if python_version:

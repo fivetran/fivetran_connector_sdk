@@ -50,7 +50,7 @@ example.
 | `configuration_json` | no | `""` | full `configuration.json` content as a string, only if you mean to push it now. **Sensitive** -- see [Security](#security) |
 | `empty_config_path` | no | `"configuration.example.json"` | placeholder file (relative to `connector_dir`) for a first deploy without real config |
 | `python_version` | no | `""` | optional `--python-version` override |
-| `fivetran_sdk_version` | no | `""` | pins `fivetran-connector-sdk` (e.g. `"2.11.0"`) for `requirements.txt`-only connectors; unpinned if left empty. No effect on `pyproject.toml` connectors, which are already pinned via their own `uv.lock` |
+| `fivetran_sdk_version` | no | `""` | pins `fivetran-connector-sdk` (e.g. `"2.11.0"`); unpinned if left empty. Always applies for `requirements.txt`-only connectors. For `pyproject.toml` connectors it's only used as a fallback install when `uv sync` didn't already provide a `fivetran` CLI -- a connector that pins its own version via `uv.lock` keeps that pin |
 | `activate_on_create` | no | `"false"` | if `"true"`, unpause the connection right after *this run* creates it with real config. One-time effect only -- ignored on redeploys and on placeholder-config creations. See [Security](#security) for the API call this makes |
 | `fivetran_api_key` | yes | -- | e.g. `${{ secrets.FIVETRAN_API_KEY }}` |
 
