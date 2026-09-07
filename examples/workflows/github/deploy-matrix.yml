@@ -156,8 +156,19 @@ jobs:
           BILLING_API_TOKEN: ${{ secrets.BILLING_API_TOKEN }}
           REGIONAL_USAGE_SA_JSON: ${{ secrets.REGIONAL_USAGE_SA_JSON }}
         run: |
+          # A configured-but-empty GitHub secret ("${{ secrets.X }}" evaluates to ""
+          # when X isn't set) would otherwise deploy silently with a blank credential,
+          # overwriting a live connection's real config -- fail fast instead.
+          missing=$(echo "$CONNECTOR_CONFIG" | jq -r '
+            [.[] | select(has("secret")) | select((env[.secret] // "") == "") | .secret] | join(", ")
+          ')
+          if [ -n "$missing" ]; then
+            echo "::error::${{ matrix.name }}: missing or empty required secret(s): $missing"
+            exit 1
+          fi
+
           json=$(echo "$CONNECTOR_CONFIG" | jq -c '
-            map(if has("secret") then {(.key): (env[.secret] // "")} else {(.key): .value} end)
+            map(if has("secret") then {(.key): env[.secret]} else {(.key): .value} end)
             | add // {}
           ')
           echo "::add-mask::$json" # re-mask: jq's JSON-escaping can dodge GitHub's per-secret masking
